@@ -68,12 +68,16 @@ func TestManagerRefreshExpiredNotDeleted(t *testing.T) {
 		t.Fatalf("s1 should be expired")
 	}
 
-	session, err := manager.Refresh(ctx, "s1", 10*time.Second)
+	session, err := manager.Refresh(ctx, "s1", 10*time.Second, time.Hour)
 	if err != nil {
 		t.Fatalf("refresh failed: %v", err)
 	}
 	if !session.ExpiresAt.After(now) {
 		t.Fatalf("refresh should extend expiration")
+	}
+	wantDel := now.Add(time.Hour)
+	if session.DeletedAt == nil || !session.DeletedAt.Equal(wantDel) {
+		t.Fatalf("refresh should postpone DeletedAt to %v, got %v", wantDel, session.DeletedAt)
 	}
 
 	if _, err := manager.Get(ctx, "s1", true); err != nil {
@@ -96,7 +100,7 @@ func TestManagerRefreshDeletedSession(t *testing.T) {
 	}
 
 	now = now.Add(2 * time.Second)
-	if _, err := manager.Refresh(ctx, "s1", time.Minute); err != session.ErrSessionDeleted {
+	if _, err := manager.Refresh(ctx, "s1", time.Minute, time.Hour); err != session.ErrSessionDeleted {
 		t.Fatalf("expected ErrSessionDeleted, got: %v", err)
 	}
 }
@@ -117,7 +121,7 @@ func TestManagerListenerAndPurge(t *testing.T) {
 	if _, err := manager.Open(ctx, "u1", "s1", 10*time.Minute, time.Hour, nil); err != nil {
 		t.Fatalf("open failed: %v", err)
 	}
-	if _, err := manager.Refresh(ctx, "s1", time.Hour); err != nil {
+	if _, err := manager.Refresh(ctx, "s1", time.Hour, time.Hour); err != nil {
 		t.Fatalf("refresh failed: %v", err)
 	}
 	if err := manager.Delete(ctx, "s1"); err != nil {
@@ -209,7 +213,7 @@ func TestManagerEventDisabled(t *testing.T) {
 	if _, err := manager.Open(ctx, "u1", "s1", time.Hour, time.Hour, nil); err != nil {
 		t.Fatalf("open failed: %v", err)
 	}
-	if _, err := manager.Refresh(ctx, "s1", time.Hour); err != nil {
+	if _, err := manager.Refresh(ctx, "s1", time.Hour, time.Hour); err != nil {
 		t.Fatalf("refresh failed: %v", err)
 	}
 	if err := manager.Delete(ctx, "s1"); err != nil {
@@ -256,7 +260,7 @@ func TestManagerListActiveUsers(t *testing.T) {
 		t.Fatalf("expected no active users, got %v", users)
 	}
 
-	if _, err := manager.Refresh(ctx, "s2", time.Minute); err != nil {
+	if _, err := manager.Refresh(ctx, "s2", time.Minute, time.Hour); err != nil {
 		t.Fatalf("refresh s2 failed: %v", err)
 	}
 	users, err = manager.ListActiveUsers(ctx)

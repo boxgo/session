@@ -115,8 +115,8 @@ func (m *Manager) Open(
 	return session.Clone(), nil
 }
 
-// Refresh 刷新会话过期时间（仅未删除会话可刷新）。
-func (m *Manager) Refresh(ctx context.Context, sessionID string, ttl time.Duration) (*Session, error) {
+// Refresh 刷新会话：用当前时间与 Open 相同的语义重算 ExpiresAt（now+ttl）与 DeletedAt（calcDeletedAt(now, deleteAfter)）；仅未到删除时间的会话可刷新。
+func (m *Manager) Refresh(ctx context.Context, sessionID string, ttl, deleteAfter time.Duration) (*Session, error) {
 	if sessionID == "" || ttl <= 0 {
 		return nil, ErrInvalidArgument
 	}
@@ -135,6 +135,7 @@ func (m *Manager) Refresh(ctx context.Context, sessionID string, ttl time.Durati
 
 	session.UpdatedAt = now
 	session.ExpiresAt = now.Add(ttl)
+	session.DeletedAt = calcDeletedAt(now, deleteAfter)
 	if err := m.store.Upsert(ctx, session); err != nil {
 		return nil, err
 	}

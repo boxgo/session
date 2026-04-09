@@ -56,7 +56,7 @@ func BenchmarkManagerRefreshRedis(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := manager.Refresh(ctx, "s1", time.Hour); err != nil {
+		if _, err := manager.Refresh(ctx, "s1", time.Hour, 24*time.Hour); err != nil {
 			b.Fatalf("refresh failed: %v", err)
 		}
 	}
@@ -74,7 +74,7 @@ func BenchmarkManagerRefreshRedisEventOff(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := manager.Refresh(ctx, "s1", time.Hour); err != nil {
+		if _, err := manager.Refresh(ctx, "s1", time.Hour, 24*time.Hour); err != nil {
 			b.Fatalf("refresh failed: %v", err)
 		}
 	}
@@ -278,7 +278,7 @@ func benchRedisCodecEventOffRefresh(b *testing.B, codec sessredis.Codec) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			if _, err := manager.Refresh(ctx, "s1", time.Hour); err != nil {
+			if _, err := manager.Refresh(ctx, "s1", time.Hour, 24*time.Hour); err != nil {
 				b.Fatalf("refresh failed: %v", err)
 			}
 		}

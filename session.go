@@ -16,7 +16,7 @@ type EventType uint8
 const (
 	// EventCreated 会话创建/打开事件。
 	EventCreated EventType = iota + 1
-	// EventRefreshed 会话刷新事件（过期时间被延长）。
+	// EventRefreshed 会话刷新事件（过期时间与删除截止时间按 Refresh 参数更新）。
 	EventRefreshed
 	// EventDeleted 会话软删除事件。
 	EventDeleted

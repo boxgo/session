@@ -51,7 +51,7 @@ go test ./...
 - `DeletedAt`：会话删除时间，达到该时间后会话视为删除态，不能刷新
 - `Purge`：物理清理 `DeletedAt <= now` 的会话，释放存储空间
 
-> 语义说明：过期和删除是独立状态。会话可以“过期但未删除”，此时允许 `Refresh` 重新生效；若已到删除时间，则 `Refresh` 返回 `ErrSessionDeleted`。
+> 语义说明：过期和删除是独立状态。会话可以“过期但未删除”，此时可调用 `Refresh(ctx, id, ttl, deleteAfter)` 重新生效：`ttl`、`deleteAfter` 与 `Open` 含义相同，会从**当前时间**重算 `ExpiresAt` 与 `DeletedAt`（`deleteAfter <= 0` 时 `DeletedAt` 置空）。若已到删除时间，则 `Refresh` 返回 `ErrSessionDeleted`。
 
 ## 快速开始
 
@@ -151,6 +151,7 @@ mgr := session.NewManager(
 ## 导出函数速查（名称 + 用法）
 
 - `NewManager(store, opts...)`：创建会话管理器，默认多会话、事件关闭
+- `Refresh(ctx, sessionID, ttl, deleteAfter)`：从未删除会话刷新；`ttl`、`deleteAfter` 与 `Open` 一致，从当前时刻重算 `ExpiresAt` 与 `DeletedAt`
 - `WithMode(ModeSingle|ModeMulti)`：配置单会话或多会话模式
 - `WithEventEnabled(bool)`：开启/关闭事件监听能力（默认 `false`）
 - `WithNowFunc(fn)`：注入时钟函数（测试场景常用）
