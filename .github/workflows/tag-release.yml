@@ -1,0 +1,75 @@
+# 在默认分支上为「根模块 + store/redis 子模块」打对应 tag 并推送。
+# 用法：Actions → Tag release → Run workflow → 填写版本号（如 0.1.0）。
+name: Tag release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver，勿带 v 前缀，例如 0.1.0"
+        required: true
+        type: string
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate, create tags, push
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          V="${VERSION_INPUT#v}"
+          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Invalid semver: $V (expected e.g. 0.1.0 or 1.0.0-rc.1)"
+            exit 1
+          fi
+
+          git fetch origin --tags
+          if git show-ref --verify --quiet "refs/tags/v${V}"; then
+            echo "::error::Tag v${V} already exists"
+            exit 1
+          fi
+          if git show-ref --verify --quiet "refs/tags/store/redis/v${V}"; then
+            echo "::error::Tag store/redis/v${V} already exists"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "v${V}" -m "github.com/boxgo/session v${V}"
+          git tag -a "store/redis/v${V}" -m "github.com/boxgo/session/store/redis v${V}"
+
+          git push origin "refs/tags/v${V}" "refs/tags/store/redis/v${V}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          V="${VERSION_INPUT#v}"
+          NOTES_FILE=$(mktemp)
+          {
+            echo "**Go modules（同一提交）**"
+            echo ""
+            echo "| 模块 | \`go get\` |"
+            echo "|------|------------|"
+            echo "| \`github.com/boxgo/session\` | \`go get github.com/boxgo/session@v${V}\` |"
+            echo "| \`github.com/boxgo/session/store/redis\` | \`go get github.com/boxgo/session/store/redis@v${V}\` |"
+            echo ""
+            echo "子模块 Git tag：\`store/redis/v${V}\`。"
+          } >"$NOTES_FILE"
+          gh release create "v${V}" \
+            --repo "${{ github.repository }}" \
+            --title "v${V}" \
+            --notes-file "$NOTES_FILE" \
+            --verify-tag
+          rm -f "$NOTES_FILE"

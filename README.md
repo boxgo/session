@@ -33,18 +33,6 @@ go get github.com/boxgo/session/store/redis@latest
 
 也可在 `go.mod` 中手写 `require` 后执行 `go mod tidy`。代码里未 `import .../store/redis` 时，不会把 Redis 客户端链进最终二进制。
 
-### 克隆仓库参与开发
-
-本仓库为 **多模块 monorepo**（根目录模块 + `store/redis`），根目录已配置 `go.work`。克隆后在**仓库根目录**构建或测试即可：
-
-```bash
-git clone https://github.com/boxgo/session.git
-cd session
-go test ./...
-```
-
-若只改 Redis 子模块，也可 `cd store/redis` 后在该目录单独执行 `go test`。
-
 ## 核心概念
 
 - `ExpiresAt`：会话过期时间，过期后不再是活跃会话
@@ -236,3 +224,24 @@ go test ./store/redis/... -count=1
 go test . -bench . -benchmem -run '^$'
 go test ./store/redis/... -bench . -benchmem -run '^$'
 ```
+
+## 参与开发
+
+本仓库为 **多模块 monorepo**（根目录模块 + `store/redis`），根目录已配置 `go.work`。克隆后在**仓库根目录**构建或测试即可：
+
+```bash
+git clone https://github.com/boxgo/session.git
+cd session
+go test ./...
+```
+
+若只改 Redis 子模块，也可 `cd store/redis` 后在该目录单独执行 `go test`。
+
+### 发版与 tag（自动化）
+
+同一提交需两个 Git tag 才能分别解析两个 module：根模块为 `vX.Y.Z`，Redis 子模块为 `store/redis/vX.Y.Z`（`go get github.com/boxgo/session/store/redis@vX.Y.Z` 依赖后者，勿仅用根目录 `vX.Y.Z`）。
+
+- **GitHub**：打开仓库 **Actions** → **Tag release** → **Run workflow**，填写版本如 `0.1.0`，工作流会在当前默认分支 HEAD 上创建并推送 `v0.1.0` 与 `store/redis/v0.1.0`，并**自动创建**以 `v0.1.0` 为 tag 的 **GitHub Release**（含两个 module 的 `go get` 说明；定义见 [.github/workflows/tag-release.yml](.github/workflows/tag-release.yml)）。
+- **本地**：在目标 commit 上执行 `bash scripts/tag-release.sh 0.1.0`，再按脚本提示 `git push origin …`。
+
+发版后可将 `store/redis/go.mod` 里对主模块的 `require` 升为对应 `v0.1.0`（与根模块 tag 一致），再打一版子模块 tag 或沿用同一次双 tag 流程。
