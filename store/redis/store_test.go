@@ -18,6 +18,7 @@ func TestRedisStoreLifecycle(t *testing.T) {
 		codec sessredis.Codec
 	}{
 		{name: "json", codec: sessredis.JSONCodec()},
+		{name: "sonic", codec: sessredis.SonicCodec()},
 		{name: "msgpack", codec: sessredis.MsgpackCodec()},
 	}
 

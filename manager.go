@@ -129,7 +129,7 @@ func (m *Manager) Refresh(ctx context.Context, sessionID string, ttl, deleteAfte
 	if session == nil {
 		return nil, ErrSessionNotFound
 	}
-	if session.DeletedAt != nil && !session.DeletedAt.After(now) {
+	if !session.DeletedAt.IsZero() && !session.DeletedAt.After(now) {
 		return nil, ErrSessionDeleted
 	}
 
@@ -374,13 +374,11 @@ func (m *Manager) deleteOtherSessions(ctx context.Context, userID, keepSessionID
 	return replaced, nil
 }
 
-func calcDeletedAt(now time.Time, deleteAfter time.Duration) *time.Time {
+func calcDeletedAt(now time.Time, deleteAfter time.Duration) time.Time {
 	if deleteAfter <= 0 {
-		return nil
+		return time.Time{}
 	}
-	t := now.Add(deleteAfter)
-
-	return &t
+	return now.Add(deleteAfter)
 }
 
 func cloneMap(src map[string]string) map[string]string {

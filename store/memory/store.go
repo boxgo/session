@@ -118,7 +118,7 @@ func (s *MemoryStore) Delete(_ context.Context, sessionID string, deletedAt time
 		return session.ErrSessionNotFound
 	}
 	// 这里只做软删除，物理清理在 Purge 中完成。
-	sess.DeletedAt = &deletedAt
+	sess.DeletedAt = deletedAt
 	sess.UpdatedAt = deletedAt
 	s.sessions[sessionID] = sess
 
@@ -141,7 +141,7 @@ func (s *MemoryStore) DeleteByUser(_ context.Context, userID string, deletedAt t
 	ans := make([]string, 0, len(idx))
 	for sessionID := range idx {
 		if sess, ok := s.sessions[sessionID]; ok {
-			sess.DeletedAt = &deletedAt
+			sess.DeletedAt = deletedAt
 			sess.UpdatedAt = deletedAt
 			s.sessions[sessionID] = sess
 			ans = append(ans, sessionID)
@@ -158,7 +158,7 @@ func (s *MemoryStore) Purge(_ context.Context, now time.Time) ([]string, error) 
 
 	removed := make([]string, 0, 64)
 	for sessionID, sess := range s.sessions {
-		if sess.DeletedAt != nil && !sess.DeletedAt.After(now) {
+		if !sess.DeletedAt.IsZero() && !sess.DeletedAt.After(now) {
 			delete(s.sessions, sessionID)
 			if idx := s.userIdx[sess.UserID]; idx != nil {
 				delete(idx, sessionID)

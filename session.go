@@ -27,6 +27,7 @@ const (
 )
 
 // Session 表示用户会话实体。
+// DeletedAt 为零值表示未设置删除时间。
 type Session struct {
 	ID        string            `json:"id"`
 	UserID    string            `json:"userId"`
@@ -34,7 +35,7 @@ type Session struct {
 	CreatedAt time.Time         `json:"createdAt"`
 	UpdatedAt time.Time         `json:"updatedAt"`
 	ExpiresAt time.Time         `json:"expiresAt"`
-	DeletedAt *time.Time        `json:"deletedAt,omitempty"`
+	DeletedAt time.Time         `json:"deletedAt"`
 }
 
 // ActiveAt 判断会话在指定时间点是否处于活跃状态。
@@ -42,14 +43,14 @@ func (s *Session) ActiveAt(now time.Time) bool {
 	if s == nil {
 		return false
 	}
-	if s.DeletedAt != nil && !s.DeletedAt.After(now) {
+	if !s.DeletedAt.IsZero() && !s.DeletedAt.After(now) {
 		return false
 	}
 
 	return s.ExpiresAt.After(now)
 }
 
-// Clone 返回会话的深拷贝（含 Payload 与 DeletedAt）。
+// Clone 返回会话的深拷贝（含 Payload）。
 func (s *Session) Clone() *Session {
 	if s == nil {
 		return nil
@@ -61,10 +62,6 @@ func (s *Session) Clone() *Session {
 		for k, v := range s.Payload {
 			cp.Payload[k] = v
 		}
-	}
-	if s.DeletedAt != nil {
-		t := *s.DeletedAt
-		cp.DeletedAt = &t
 	}
 
 	return &cp

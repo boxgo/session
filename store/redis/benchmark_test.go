@@ -81,13 +81,86 @@ func BenchmarkManagerRefreshRedisEventOff(b *testing.B) {
 }
 
 func BenchmarkManagerOpenRedisCodecEventOff(b *testing.B) {
-	benchRedisCodecEventOffOpen(b, sessredis.JSONCodec())
-	benchRedisCodecEventOffOpen(b, sessredis.MsgpackCodec())
+	for _, c := range redisBenchmarkCodecs() {
+		benchRedisCodecEventOffOpen(b, c)
+	}
 }
 
 func BenchmarkManagerRefreshRedisCodecEventOff(b *testing.B) {
-	benchRedisCodecEventOffRefresh(b, sessredis.JSONCodec())
-	benchRedisCodecEventOffRefresh(b, sessredis.MsgpackCodec())
+	for _, c := range redisBenchmarkCodecs() {
+		benchRedisCodecEventOffRefresh(b, c)
+	}
+}
+
+func redisBenchmarkCodecs() []sessredis.Codec {
+	return []sessredis.Codec{
+		sessredis.JSONCodec(),
+		sessredis.SonicCodec(),
+		sessredis.MsgpackCodec(),
+	}
+}
+
+func BenchmarkCodecMarshal(b *testing.B) {
+	sess := sampleSessionForCodecBench()
+	for _, c := range redisBenchmarkCodecs() {
+		c := c
+		b.Run(c.Name(), func(b *testing.B) {
+			var out []byte
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				var err error
+				out, err = c.Marshal(sess)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+			_ = out
+		})
+	}
+}
+
+func BenchmarkCodecUnmarshal(b *testing.B) {
+	sess := sampleSessionForCodecBench()
+	byCodec := make(map[string][]byte, 3)
+	for _, c := range redisBenchmarkCodecs() {
+		data, err := c.Marshal(sess)
+		if err != nil {
+			b.Fatalf("marshal %s: %v", c.Name(), err)
+		}
+		byCodec[c.Name()] = data
+	}
+	for _, c := range redisBenchmarkCodecs() {
+		c := c
+		data := byCodec[c.Name()]
+		b.Run(c.Name(), func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				var got session.Session
+				if err := c.Unmarshal(data, &got); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func sampleSessionForCodecBench() *session.Session {
+	return &session.Session{
+		ID:        "s1",
+		UserID:    "u1",
+		CreatedAt: time.Unix(1700000000, 0).UTC(),
+		UpdatedAt: time.Unix(1700003600, 0).UTC(),
+		ExpiresAt: time.Unix(1700086400, 0).UTC(),
+		Payload: map[string]string{
+			"device":  "ios",
+			"ip":      "127.0.0.1",
+			"ua":      "Mozilla/5.0",
+			"version": "1.0.0",
+			"biz":     "session",
+		},
+	}
 }
 
 func BenchmarkManagerListByUserRedis(b *testing.B) {

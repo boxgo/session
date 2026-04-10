@@ -32,16 +32,14 @@ mgr := session.NewManager(store, session.WithMode(session.ModeMulti))
 - `prefix`：键命名空间，**建议传入业务前缀**；若传空字符串，默认使用 `"session"`。
 - 客户端类型为 `redis.UniversalClient`，单实例、Sentinel、Cluster 等均可。
 
-## 编解码（JSON / msgpack）
+## 编解码（JSON / Sonic / msgpack）
 
-默认使用 **JSON**。可切换为 msgpack 或自定义 `Codec`：
+默认使用 **`encoding/json`**。高 QPS 场景可选用 **[Sonic](https://github.com/bytedance/sonic)**（与 JSON 相同的紧凑线格式，通常更快；需满足 sonic 对 Go 与 CPU 的要求），或 **msgpack**：
 
 ```go
-store := sessredis.NewRedisStoreWithCodec(
-    cli,
-    "myapp:session",
-    sessredis.MsgpackCodec(),
-)
+store := sessredis.NewRedisStoreWithCodec(cli, "myapp:session", sessredis.SonicCodec())
+// 或
+store := sessredis.NewRedisStoreWithCodec(cli, "myapp:session", sessredis.MsgpackCodec())
 ```
 
 实现 `sessredis.Codec` 即可接入自定义序列化格式。
@@ -52,7 +50,7 @@ store := sessredis.NewRedisStoreWithCodec(
 
 | 模式 | 说明 |
 |------|------|
-| `{prefix}:session:{sessionID}` | 会话主数据（`STRING`，值为序列化后的 `Session`） |
+| `{prefix}:session:{sessionID}` | 会话主数据（`STRING`，值为紧凑 `Session`：`i,u,p,c,m,e,d`，其中 `c,m,e,d` 为 **UTC Unix 秒**（整数）；解码仍支持 RFC3339 字符串与旧键名 `id,userId,...`） |
 | `{prefix}:user:{userID}` | 用户会话索引（`ZSET`，member 为 `sessionID`，score 为更新时间 Unix 秒） |
 | `{prefix}:deleted` | 待物理清理索引（`ZSET`，member 为 `userID` + 分隔符 + `sessionID`，score 为 `DeletedAt` Unix 秒） |
 

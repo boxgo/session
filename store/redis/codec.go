@@ -1,10 +1,8 @@
 package redis
 
 import (
-	"encoding/json"
-
 	"github.com/boxgo/session"
-	"github.com/vmihailenco/msgpack/v5"
+	"github.com/bytedance/sonic"
 )
 
 // Codec 定义 Redis 会话对象的编解码接口。
@@ -19,11 +17,11 @@ type jsonCodec struct{}
 func (jsonCodec) Name() string { return "json" }
 
 func (jsonCodec) Marshal(sess *session.Session) ([]byte, error) {
-	return json.Marshal(sess)
+	return marshalSessionJSON(sess)
 }
 
 func (jsonCodec) Unmarshal(data []byte, sess *session.Session) error {
-	return json.Unmarshal(data, sess)
+	return unmarshalSessionJSON(data, sess)
 }
 
 type msgpackCodec struct{}
@@ -31,11 +29,27 @@ type msgpackCodec struct{}
 func (msgpackCodec) Name() string { return "msgpack" }
 
 func (msgpackCodec) Marshal(sess *session.Session) ([]byte, error) {
-	return msgpack.Marshal(sess)
+	return marshalSessionMsgpack(sess)
 }
 
 func (msgpackCodec) Unmarshal(data []byte, sess *session.Session) error {
-	return msgpack.Unmarshal(data, sess)
+	return unmarshalSessionMsgpack(data, sess)
+}
+
+type sonicCodec struct{}
+
+func (sonicCodec) Name() string { return "sonic" }
+
+func (sonicCodec) Marshal(sess *session.Session) ([]byte, error) {
+	return sonic.Marshal(sessionToWire(sess))
+}
+
+func (sonicCodec) Unmarshal(data []byte, sess *session.Session) error {
+	var m map[string]interface{}
+	if err := sonic.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	return applyLooseSessionMap(sess, m)
 }
 
 // JSONCodec 返回 JSON 编解码器。
@@ -46,4 +60,9 @@ func JSONCodec() Codec {
 // MsgpackCodec 返回 msgpack 编解码器。
 func MsgpackCodec() Codec {
 	return msgpackCodec{}
+}
+
+// SonicCodec 返回基于 github.com/bytedance/sonic 的 JSON 编解码器，与 JSONCodec 使用相同的紧凑线格式（短键 + Unix 秒），通常更快；需满足 sonic 对 Go 版本与 CPU 架构的要求。
+func SonicCodec() Codec {
+	return sonicCodec{}
 }

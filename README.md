@@ -161,7 +161,7 @@ mgr := session.NewManager(
 
 - `NewRedisStore(redisClient, prefix)`：Redis `Store` 实现（建议传业务前缀）
 - `NewRedisStoreWithCodec(redisClient, prefix, codec)`：指定编解码器
-- `JSONCodec()` / `MsgpackCodec()`：内置编解码器
+- `JSONCodec()` / `SonicCodec()` / `MsgpackCodec()`：内置编解码器（Sonic 为可选高性能 JSON）
 - `Codec`：自定义序列化时可实现该接口
 
 ## 导出类型速查（名称 + 用法）

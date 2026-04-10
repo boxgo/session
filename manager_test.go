@@ -36,7 +36,7 @@ func TestManagerSingleMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get s1 failed: %v", err)
 	}
-	if s1.DeletedAt == nil {
+	if s1.DeletedAt.IsZero() {
 		t.Fatalf("s1 should be marked deleted")
 	}
 
@@ -76,7 +76,7 @@ func TestManagerRefreshExpiredNotDeleted(t *testing.T) {
 		t.Fatalf("refresh should extend expiration")
 	}
 	wantDel := now.Add(time.Hour)
-	if session.DeletedAt == nil || !session.DeletedAt.Equal(wantDel) {
+	if session.DeletedAt.IsZero() || !session.DeletedAt.Equal(wantDel) {
 		t.Fatalf("refresh should postpone DeletedAt to %v, got %v", wantDel, session.DeletedAt)
 	}
 

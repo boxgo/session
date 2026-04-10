@@ -56,8 +56,8 @@ func (s *RedisStore) Upsert(ctx context.Context, sess *session.Session) error {
 	}
 
 	pipe := s.client.Pipeline()
-	if sess.DeletedAt != nil {
-		pipe.SetArgs(ctx, s.sessionKey(sess.ID), payload, goredis.SetArgs{ExpireAt: *sess.DeletedAt})
+	if !sess.DeletedAt.IsZero() {
+		pipe.SetArgs(ctx, s.sessionKey(sess.ID), payload, goredis.SetArgs{ExpireAt: sess.DeletedAt})
 	} else {
 		pipe.Set(ctx, s.sessionKey(sess.ID), payload, 0)
 	}
@@ -65,7 +65,7 @@ func (s *RedisStore) Upsert(ctx context.Context, sess *session.Session) error {
 		Score:  float64(sess.UpdatedAt.Unix()),
 		Member: sess.ID,
 	})
-	if sess.DeletedAt != nil {
+	if !sess.DeletedAt.IsZero() {
 		pipe.ZAdd(ctx, s.deletedKey(), goredis.Z{
 			Score:  float64(sess.DeletedAt.Unix()),
 			Member: s.deletedMember(sess.UserID, sess.ID),
@@ -204,7 +204,7 @@ func (s *RedisStore) Delete(ctx context.Context, sessionID string, deletedAt tim
 		return err
 	}
 
-	sess.DeletedAt = &deletedAt
+	sess.DeletedAt = deletedAt
 	sess.UpdatedAt = deletedAt
 
 	return s.Upsert(ctx, sess)
@@ -222,7 +222,7 @@ func (s *RedisStore) DeleteByUser(ctx context.Context, userID string, deletedAt 
 
 	ans := make([]string, 0, len(sessions))
 	for _, sess := range sessions {
-		sess.DeletedAt = &deletedAt
+		sess.DeletedAt = deletedAt
 		sess.UpdatedAt = deletedAt
 		if err := s.Upsert(ctx, sess); err != nil {
 			return nil, err
