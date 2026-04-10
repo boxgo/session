@@ -1,5 +1,11 @@
 # session
 
+[![CI](https://github.com/boxgo/session/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/boxgo/session/actions/workflows/ci.yml?query=branch%3Amain)
+[![Go Reference](https://pkg.go.dev/badge/github.com/boxgo/session.svg)](https://pkg.go.dev/github.com/boxgo/session)
+[![Go](https://img.shields.io/github/go-mod/go-version/boxgo/session?filename=go.mod&logo=go)](https://github.com/boxgo/session/blob/main/go.mod)
+[![Release](https://img.shields.io/github/v/release/boxgo/session?logo=github)](https://github.com/boxgo/session/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 高性能用户会话模块（Go 包名 **`session`**，模块路径 `github.com/boxgo/session`），支持以下能力：
 
 - 单会话 / 多会话模式
