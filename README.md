@@ -225,6 +225,8 @@ go test . -bench . -benchmem -run '^$'
 go test ./store/redis/... -bench . -benchmem -run '^$'
 ```
 
+CI（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）在 **Go 1.19 / 1.21 / 1.23 / stable** 上分别跑单元测试与 benchmark（`fail-fast: false`，任一版本失败不影响其余矩阵）。
+
 ## 参与开发
 
 本仓库为 **多模块 monorepo**（根目录模块 + `store/redis`），根目录已配置 `go.work`。克隆后在**仓库根目录**构建或测试即可：
@@ -245,3 +247,26 @@ go test ./...
 - **本地**：在目标 commit 上执行 `bash scripts/tag-release.sh 0.1.0`，再按脚本提示 `git push origin …`。
 
 发版后可将 `store/redis/go.mod` 里对主模块的 `require` 升为对应 `v0.1.0`（与根模块 tag 一致），再打一版子模块 tag 或沿用同一次双 tag 流程。
+
+### 升级 redis 子模块对主模块 `session` 的依赖
+
+`store/redis/go.mod` 里的 `require github.com/boxgo/session …` 必须指向**已在网络上可解析**的版本（**semver tag** 如 `v0.2.0`，或**伪版本**）。**不要**把 `replace github.com/boxgo/session => ../..` 提交进仓库。
+
+**稳妥流程（推荐，两次提交）：**
+
+1. 主模块改完 → 提交 → 打并推送根 tag **`v0.2.0`**（先有主模块版本，代理才能拉到）。
+2. 在 `store/redis` 目录：
+   ```bash
+   cd store/redis
+   go get github.com/boxgo/session@v0.2.0
+   go mod tidy
+   go test ./...
+   ```
+3. 提交 `store/redis/go.mod`、`go.sum`，根目录再 `go test ./...`。
+4. 打并推送 **`store/redis/v0.2.0`**（或再跑 **Tag release**，版本号与本次子模块发版一致）。
+
+**同一提交上打双 tag 时：** 该提交里的 `store/redis` 必须已 `require` 到**即将推送的**主模块版本；注意在 tag 未推送前，`cd store/redis && go mod tidy` 可能拉不到 `v0.2.0`，可先在根目录用 **`go.work`** 做 `go test ./...`，tag 推送后再进 `store/redis` tidy。
+
+**本地开发、主模块还没 tag：** 依赖根目录 **`go.work`** 即可联编；若只在 `store/redis` 下跑测试，可**临时**、**不提交**地在 `go.mod` 加 `replace => ../..`。
+
+**仅 bump 依赖、无 redis 代码变更：** 同样 `go get github.com/boxgo/session@vX.Y.Z` + `go mod tidy`，再发一版 `store/redis/v…`。

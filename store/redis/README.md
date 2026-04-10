@@ -13,7 +13,7 @@ go get github.com/boxgo/session/store/redis@latest
 
 要求 Go **1.19+**（以本目录 `go.mod` 为准）。
 
-`go.mod` 使用指向主模块某次提交的 **伪版本**（`v0.0.0-时间戳-提交前缀`），以便外部项目 `go get` 时不再依赖仅本地生效的 `replace`。固定版本时子模块需 tag **`store/redis/v0.1.0`**（与根目录 `v0.1.0` 不同）。**自动打双 tag** 见仓库根 [README.md](../../README.md)（GitHub Actions `Tag release` 或 `scripts/tag-release.sh`）。
+`require github.com/boxgo/session` 使用 **semver 或伪版本**（勿提交 `replace => ../..`）。固定版本时子模块 Git tag 为 **`store/redis/vX.Y.Z`**（与根目录 `vX.Y.Z` 不同）。**打 tag / Release** 见根目录 [README.md](../../README.md) 中「参与开发」。**升级主模块依赖版本** 见根 README 同章「升级 redis 子模块对主模块 session 的依赖」。
 
 ## 快速使用
 
